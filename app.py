@@ -1,19 +1,17 @@
-from email.policy import strict
-from flask import Flask, redirect, render_template, request, url_for, jsonify, send_from_directory
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
-from flask_wtf import FlaskForm
-import metaclass
-from wtforms import StringField, PasswordField, SubmitField
-from wtforms.validators import InputRequired, length, ValidationError, email, DataRequired
-from flask_bcrypt import Bcrypt
-from flask_restful import Resource, Api
-from flask_marshmallow import Marshmallow
-import json
 import os
-import requests
-import sqlite3
-
+from marshmallow import fields, validate, Schema
+from flask import Flask, redirect, render_template, url_for, jsonify
+from flask_bcrypt import Bcrypt
+from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user
+from flask_marshmallow import Marshmallow
+from flask_migrate import Migrate
+from flask_restful import Api
+from flask_sqlalchemy import SQLAlchemy
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField, SubmitField
+from wtforms.validators import InputRequired, length, ValidationError
+from sqlalchemy.orm import validates
+import re
 
 BASE_DIR = os.path.dirname(__file__)
 app = Flask(__name__)
@@ -23,6 +21,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///authentication.db'
 app.config['SECRET_KEY'] = 'secretkey'
 api = Api(app)
 ma = Marshmallow(app)
+migrate = Migrate(app, db)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -30,22 +29,37 @@ login_manager.login_view = "Login"
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))  
+    return User.query.get(int(user_id))
 
 
 #database oluşturma
-class User(db.Model, UserMixin):   
-    id = db.Column(db.Integer, primary_key=True)
+class User(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     email = db.Column(db.String(40), nullable=False, unique=True)
     username = db.Column(db.String(20), nullable=False, unique=True)
     password = db.Column(db.String(80), nullable=False)
 
-    def __init__(self, id, email, username, password):
-        self.id = id
+    def __init__(self, email, username, password):
         self.email = email
         self.username = username
         self.password = password
-    
+
+    @validates('email')
+    def validate_email(self, key, email):
+        if not email:
+            raise AssertionError('No email provided')
+        if not re.match("[^@]+@[^@]+\.[^@]+", email):
+            raise AssertionError('Provided email is not an email address')
+        return email
+
+
+class UserSchema(Schema):
+    id = fields.Integer(dump_only=True)
+    email = fields.Email()
+    username = fields.String()
+
+
+user_schema = UserSchema(many=True)
 
 
 #Kayıt formu oluşturma
@@ -56,18 +70,6 @@ class RegisterForm(FlaskForm):
 
     submit = SubmitField("Register")
 
-#Yanlış girilen veride hata verme
-def validate_email(self, email):
-    existing_email = User.query.filter_by(email=email.data).first()
-    
-    if existing_email:
-        raise ValidationError("That email already exists")
-
-def validate_username(self, username):
-    existing_username = User.query.filter_by(username=username.data).first()
-    
-    if existing_username:
-        raise ValidationError("That username already exists")
 
 #Giriş formu oluşturma
 class LoginForm(FlaskForm):
@@ -113,12 +115,15 @@ def register():
         new_user = User(email=form.email.data, username=form.username.data, password=hashed_password)
         db.session.add(new_user)
         db.session.commit()
+        db.session.close()
         return redirect(url_for('login'))
     return render_template('register.html', form=form)
 
 @app.route('/users', methods=['GET'])
-def get(User):
-    return jsonify({'id': User.id, 'email': User.email, 'username': User.username, 'password': User.password} )
+def get():
+    users = User.query.all()
+    data = user_schema.dump(users)
+    return jsonify(data)
 
 # @app.route('/users/<id>', methods=['GET'])
 # def get_id(id):
