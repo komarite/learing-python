@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <h1>All Posts</h1>
+
+    <hr>
+    <h2>Create New Blog Post:</h2>
+    <form action='/test' method='POST'>
+        Post: <input type='text' name='content' id='content'>
+        <br>
+        Author: <input type='text' name='author' id='aurhor'>
+        <br>
+        <input type='submit' value='Post'>
+    </form>
+    <hr>
+
+    {% for post in posts %}
+        {% if post.author %}
+            <h3>By: {{ post.author }}</h3>
+        {% else %}
+            <h3>By: N/A</h3>
+        {% endif %}
+        <p>{{ post.content }}</p>
+        <a href='/posts/delete/{{post.id}}'>Delete</a>
+        <a href='/posts/edit/{{post.id}}'>Edit</a>
+        <hr>
+    {% endfor %}
+</body>
+</html>

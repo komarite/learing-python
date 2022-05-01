@@ -10,7 +10,7 @@
     <h1>Register Page</h1>
     <form method='POST' action="">
         {{ form.hidden_tag() }}
-        <input type="email" {{ form.email }} >
+        {{ form.email }}
         {{ form.username }}
         {{ form.password }}
         {{ form.submit }}

@@ -5,9 +5,43 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
+    <style>
+        .adana{
+            text-decoration: none;
+            color: rgb(83, 81, 81);
+        }
+
+        .adana:visited{
+            color: rgb(83, 81, 81);
+        }
+        .adana:hover{
+            color: blue;
+        }
+    </style>
 </head>
 <body>
-    <h1>Hello, you are logged in</h1>
-    <a href="{{url_for('logout')}}">Logout</a>
+    <a href="{{url_for('logout')}}" class="adana">Logout</a>
+    <h1>All Posts</h1>
+
+    <hr>
+    <h2>Create New Blog Post:</h2>
+    <form action='/dashboard' method='POST'>
+        Post: <input type='text' name='content' id='content'>
+        <br>
+        <input type='submit' value='Post'>
+    </form>
+    <hr>
+
+    {% for post in posts %}
+    <h3>By: {{ post.author }}</h3>
+        <p>{{ post.content }}</p>
+        {% if post.comment %}
+        <p>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp{{post.author}}:{{ post.comment }}</p>
+        {% else %}
+        <p></p>
+        {% endif %}
+        <a href='/dashboard/comment/{{post.id}}' class="adana">Comment</a>
+        <hr>
+    {% endfor %}
 </body>
 </html>
